@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
-#include "headers/login.hpp"
-#include "headers/database.hpp"
+#include "lib/login.hpp"
+#include "lib/database.hpp"
 /*
 Main idea:
 - Database of user password is stored in local computer

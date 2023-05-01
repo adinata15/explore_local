@@ -4,3 +4,4 @@
     - enable save to file when program run feature
     - auto create database and user file if not exist yet
     - if no user data at the start, prompt user to create one account first 
+    - make cmake read path from env files

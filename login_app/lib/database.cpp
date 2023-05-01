@@ -4,7 +4,7 @@
 #include <exception>
 #include <vector>
 #include <sstream>
-#include "../headers/database.hpp"
+#include "database.hpp"
 #include "../utils/file.hpp"
 
 Database::Database(std::string filepath)
