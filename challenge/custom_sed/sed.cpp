@@ -6,10 +6,34 @@
 #include <vector>
 #include <sstream>
 
-enum COMMAND_TYPE
+enum INPUT_TYPE
 {
-    NORMAL = 3,
-    WITH_OPTIONS = 4,
+    OPTION_ID = 0,
+    PATTERN,
+    OPTION_VAL,
+    INPUT_FILE,
+    UNKNOWN_INPUT_TYPE,
+};
+
+enum OPTIONS
+{
+    IN_PLACE = 0,
+    LINE_NUM,
+    UNKNOWN_OPTION,
+};
+
+enum ACTION_TYPE
+{
+    SUBS_ACTION = 0,
+    PRINT_ACTION,
+    UNKNOWN_ACTION,
+};
+
+enum ERROR_TYPE
+{
+    NO_ERROR = 0,
+    PARSE_ERROR,
+    UNKNOWN_ERROR,
 };
 
 std::vector<std::string> read_txt(const std::string &filepath)
@@ -43,48 +67,131 @@ void substitute(std::vector<std::string> &data, const std::string &target, const
     }
 }
 
-// std::vector<std::string> parseCommand(char *argv[])
-// {
-// }
-
-void execute(int argc, char *argv[], std::vector<std::string> &data)
+ERROR_TYPE parsePattern(char *pattern, std::vector<std::string> &tokens)
 {
-    std::string filename, command, option;
-    std::vector<std::string> tokens;
-    std::istringstream iss;
-    std::string token;
+    std::string curr;
 
-    // interpret input format
-    switch (argc)
+    for (size_t i = 0; pattern[i] != NULL; ++i)
     {
-    case NORMAL:
-        // ccsed s/this/that/g filename
-        command = argv[1];
-        filename = argv[2];
-        data = read_txt(filename);
-        iss = std::istringstream(command);
-        while (std::getline(iss, token, '/'))
+        if (pattern[i] == '/')
         {
-            tokens.push_back(token);
-            // std::cout << token << std::endl;
+            tokens.push_back(curr);
+            curr.clear();
         }
-        if (tokens[0] == "s")
+        else if (pattern[i] == '\\')
         {
-            substitute(data, tokens[1], tokens[2], tokens.size() > 3 && tokens[3] == "g");
+            if (pattern[i + 1] == NULL)
+            {
+                return PARSE_ERROR;
+            }
+            i++;
+            curr += pattern[i];
         }
-        break;
-    default:
-        std::cout << "Wrong input format" << std::endl;
+        else
+        {
+            curr += pattern[i];
+        }
+    }
+
+    if (!curr.empty())
+    {
+        tokens.push_back(curr);
+    }
+    return NO_ERROR;
+}
+
+ERROR_TYPE parseCommand(int argc, char *argv[], std::unordered_map<OPTIONS, std::string> &options_map, std::string &filepath, std::vector<std::string> &pattern_tokens)
+{
+    if (std::string(argv[0]) != "./ccsed")
+    {
+        return PARSE_ERROR;
+    }
+
+    OPTIONS prev_opt = UNKNOWN_OPTION;
+    for (int i = 1; i < argc; ++i)
+    {
+        // last args assumed to be input file path
+        if (i == argc - 1)
+        {
+            filepath = argv[i];
+            continue;
+        }
+
+        if (prev_opt != UNKNOWN_OPTION)
+        {
+            options_map[prev_opt] = argv[i];
+            prev_opt = UNKNOWN_OPTION;
+            continue;
+        }
+
+        std::string input = std::string(argv[i]);
+        if (input[0] == '-')
+        {
+            std::string option = input.substr(1, input.length());
+            if (option == "n")
+            {
+                prev_opt = LINE_NUM;
+            }
+            else if (option == "i")
+            {
+                prev_opt = IN_PLACE;
+            }
+            else
+            {
+                prev_opt = UNKNOWN_OPTION;
+            }
+        }
+        else
+        {
+            if (NO_ERROR != parsePattern(argv[i], pattern_tokens))
+            {
+                return PARSE_ERROR;
+            }
+        }
+    }
+    return NO_ERROR;
+}
+
+void execute(std::unordered_map<OPTIONS, std::string> &options_map, std::string &filename, std::vector<std::string> &pattern_tokens, std::vector<std::string> &data)
+{
+    data = read_txt(filename);
+    if (pattern_tokens[0] == "s")
+    {
+        substitute(data, pattern_tokens[1], pattern_tokens[2], pattern_tokens.size() > 3 && pattern_tokens[3] == "g");
+    }
+}
+
+void print_output(std::vector<std::string> &data)
+{
+    for (std::string &d : data)
+    {
+        std::cout << d << std::endl;
     }
 }
 
 int main(int argc, char *argv[])
 {
-    std::vector<std::string> data;
-    execute(argc, argv, data);
-    for (std::string &s : data)
+    std::string filename;
+    std::unordered_map<OPTIONS, std::string> options_map;
+    std::vector<std::string> pattern_tokens, data;
+
+    if (NO_ERROR != parseCommand(argc, argv, options_map, filename, pattern_tokens))
     {
-        std::cout << s << std::endl;
+        std::cout << "Parse error!" << std::endl;
+        return 1;
     }
+
+    // std::cout << "filename: " << filename << std::endl;
+    // std::cout << "tokens: ";
+    // for (std::string &s : pattern_tokens)
+    // {
+    //     std::cout << s << " ";
+    // }
+    // std::cout << std::endl;
+
+    execute(options_map, filename, pattern_tokens, data);
+    
+    print_output(data);
+
     return 0;
 }
