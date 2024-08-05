@@ -67,7 +67,6 @@ ERROR_TYPE write_txt(const std::string &filepath, const std::vector<std::string>
     {
         for (const std::string &line : data)
         {
-            // std::cout << line << std::endl;
             file << line;
             file << std::endl;
         }
@@ -260,7 +259,6 @@ void execute(std::unordered_map<OPTIONS, std::string> &options_map, std::string 
 
 void print_output(std::vector<std::string> &data)
 {
-    // , const std::vector<bool>& relevant_data)
     for (size_t i = 0; i < data.size(); ++i)
     {
         std::cout << data[i] << std::endl;
